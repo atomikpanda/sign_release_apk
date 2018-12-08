@@ -1,0 +1,98 @@
+#!/bin/bash
+
+
+colored_echo () {
+    local exp=$1
+    local color=$2
+    if ! [[ $color =~ '^[0-9]$' ]]
+    then
+        case $(echo $color | tr '[:upper:]' '[:lower:]') in
+        (black) color=0  ;;
+    (red) color=1  ;;
+(green) color=2  ;;
+(yellow) color=3  ;;
+(blue) color=4  ;;
+(magenta) color=5  ;;
+(cyan) color=6  ;;
+(white | *) color=7  ;;
+esac
+    fi
+    tput setaf $color
+    echo $exp
+    tput sgr0
+}
+
+if [ "$SIGN_RELEASE_BUILD_TOOLS" = "" ]; then
+    colored_echo "SIGN_RELEASE_BUILD_TOOLS not set in environment!" red
+    exit 1
+fi
+
+if [ "$SIGN_RELEASE_KEYSTORE" = "" ]; then
+    colored_echo "SIGN_RELEASE_KEYSTORE not set in environment!" red
+    exit 1
+fi
+
+if ! [ -x "$(command -v gradle)" ]; then
+    colored_echo "gradle is not installed!" red
+    exit 1
+fi
+
+if [[ -e build.gradle && -e settings.gradle && -e app ]]; then
+    # IS A PROJ DIR
+    colored_echo "VALID PROJECT" green
+else
+    colored_echo "==> ERROR NOT AN ANDROID STUDIO PROJECT DIRECTORY" red
+    exit 1
+fi
+
+colored_echo "==> BUILDING FOR RELEASE via gradle" blue
+gradle assembleRelease
+
+RELEASE=app/build/outputs/apk/release
+
+# My lint
+if [ -x "$(command -v blint)" ]; then
+    blint
+fi
+
+sleep 3
+
+# Remove old signed release apk
+
+if [ -f ../app-release.apk ]; then
+    rm ../app-release.apk
+fi
+
+if [ -f "$RELEASE/app-unsigned-aligned.apk" ]; then
+    rm $RELEASE/app-unsigned-aligned.apk
+fi
+
+
+colored_echo "==> ALIGNING APK" blue
+$SIGN_RELEASE_BUILD_TOOLS/zipalign -v -p 4 $RELEASE/app-release-unsigned.apk $RELEASE/app-unsigned-aligned.apk
+
+colored_echo "==> SIGNING APK" blue
+$SIGN_RELEASE_BUILD_TOOLS/apksigner sign --ks ~/Documents/keystore --out ../app-release.apk $RELEASE/app-unsigned-aligned.apk
+
+colored_echo "==> VERIFYING" blue
+jarsigner -verify ../app-release.apk
+sleep 3
+
+colored_echo "==> REMOVE BUILD DIRS" blue
+rm -r build
+rm -r app/build
+
+CURRENT_DIR=`dirname "$(pwd)"`
+CONTAINING_DIR=`dirname "$CURRENT_DIR"`
+PROJ_NAME=`basename "$CURRENT_DIR"`
+
+cd "$CONTAINING_DIR"
+
+colored_echo "==> ZIPPING" blue
+zip -r $PROJ_NAME.zip "$PROJ_NAME"
+
+colored_echo "==> ZIPPED!" blue
+
+osascript -e "tell application \"Finder\"" -e activate -e "reveal POSIX file \"$CONTAINING_DIR/$PROJ_NAME.zip\"" -e end tell
+
+colored_echo "==> REVEALED IN FINDER" blue
