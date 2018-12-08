@@ -1,6 +1,6 @@
 # sign_release_apk
 
-Builds for APK for release, aligns, signs with cert, verifies, removes build dirs, and zips for deployment.
+*Builds APK for release, aligns, signs with cert, verifies, removes build dirs, and zips for deployment.*
 
 ### Installation
 
