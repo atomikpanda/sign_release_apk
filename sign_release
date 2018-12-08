@@ -72,7 +72,7 @@ colored_echo "==> ALIGNING APK" blue
 $SIGN_RELEASE_BUILD_TOOLS/zipalign -v -p 4 $RELEASE/app-release-unsigned.apk $RELEASE/app-unsigned-aligned.apk
 
 colored_echo "==> SIGNING APK" blue
-$SIGN_RELEASE_BUILD_TOOLS/apksigner sign --ks ~/Documents/keystore --out ../app-release.apk $RELEASE/app-unsigned-aligned.apk
+$SIGN_RELEASE_BUILD_TOOLS/apksigner sign --ks $SIGN_RELEASE_KEYSTORE --out ../app-release.apk $RELEASE/app-unsigned-aligned.apk
 
 colored_echo "==> VERIFYING" blue
 jarsigner -verify ../app-release.apk
