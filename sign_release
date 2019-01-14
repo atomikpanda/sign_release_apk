@@ -45,6 +45,13 @@ else
     exit 1
 fi
 
+read -p "Did you run code inspection??? (y/n)" choice
+case "$choice" in 
+  y|Y ) echo "yes";;
+  n|N ) exit 1;;
+  * ) exit 1;;
+esac
+
 colored_echo "==> BUILDING FOR RELEASE via gradle" blue
 gradle assembleRelease
 
